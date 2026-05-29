@@ -131,11 +131,12 @@ class sqli_scan(object):
                   "INDEFINITE-04":"Fatal error",
                   "INDEFINITE-05":"Incorrect syntax near",}
                   
-      def scan(self,url):
+      def scan(self, url, proxy=None):
           self.url = url
           _vuln = 0
           __vuln = ""
-          resp = requests.get(f"{self.url}'").text
+          _proxies = {'http': proxy, 'https': proxy} if proxy else None
+          resp = requests.get(f"{self.url}'", proxies=_proxies).text
           for a,b in self.error.items():
               if re.search(b,resp):
                  f = open(f'{pth()}/vuln.txt','a+')

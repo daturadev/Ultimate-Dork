@@ -27,7 +27,8 @@ class Parser(object):
         URL,
         pattern,
         class_tag,
-        proxy = None
+        proxy = None,
+        user_agent = None
       ):
           self.dork = dork
           self.URL = URL
@@ -36,14 +37,15 @@ class Parser(object):
           self.proxy = {
             'https':proxy
           }
-          
-          
+          self.user_agent = user_agent or useragent()
+
+
       def __dir__(self):
           return list(set(self.__list))
 
-          
+
       def get_page(self):
-          self.__req = scrape()
+          self.__req = scrape(user_agent=self.user_agent)
           s = self.__req.open(
             self.URL,
             proxies = self.proxy,
@@ -57,17 +59,17 @@ class Parser(object):
           _content = str(self.__req.get_current_page())
           for urls in findall(
             self.__pattern,
-            _content                        
-          ):  
+            _content
+          ):
               if 'www.google.com' in self.URL: self.__list.append(urls)
               else: self.__list.append(urls[:-1])
           return self.__req.get_current_page().find_all(
             'a',
             class_=self.class_tag
           )
-          
+
       def request(self):
-          self.__req = scrape()
+          self.__req = scrape(user_agent=self.user_agent)
           for page in self.get_page():
               try:
                   load()
@@ -83,7 +85,4 @@ class Parser(object):
                       if 'www.google.com' in self.URL: self.__list.append(urls)
                       else: self.__list.append(urls[:-1])
               except Exception as e:
-                  print(e)  
-
-
-
+                  print(e)
