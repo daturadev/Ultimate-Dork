@@ -135,7 +135,10 @@ arg = par.parse_args()
 
 # Load config and resolve effective settings
 cfg = load_config(arg.config)
-max_threads = cfg.get('max_threads', 1)
+try:
+    max_threads = max(1, int(cfg.get('max_threads', 1)))
+except (TypeError, ValueError):
+    max_threads = 1
 default_uris = cfg.get('default_uris', [])
 
 def get_proxy():
