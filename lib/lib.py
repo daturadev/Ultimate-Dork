@@ -1,88 +1,69 @@
 #-*- coding: utf-8 -*-
-from mechanicalsoup import StatefulBrowser
 from re import findall
+from camoufox.sync_api import Camoufox
 from .useragent import useragent
 from .tmp import load
 
-class scrape(StatefulBrowser):
 
-      def __repr__(
-        fitur = {
-            'features':'html.parser',
-        },
-        uag = useragent()
-      ):
-          return StatefulBrowser(
-            soup_config = fitur,
-            user_agent = useragent
-          )
+def _proxy_dict(proxy_str):
+    if not proxy_str:
+        return None
+    if '://' not in proxy_str:
+        proxy_str = f'http://{proxy_str}'
+    return {"server": proxy_str}
+
+
+def _css_selector(class_tag):
+    return 'a.' + '.'.join(class_tag.split())
+
 
 class Parser(object):
 
-      __list = []
+    __list = []
 
-      def __init__(
+    def __init__(
         self,
         dork,
         URL,
         pattern,
         class_tag,
-        proxy = None,
-        user_agent = None
-      ):
-          self.dork = dork
-          self.URL = URL
-          self.__pattern = pattern
-          self.class_tag = class_tag
-          self.proxy = {
-            'https':proxy
-          }
-          self.user_agent = user_agent or useragent()
+        proxy=None,
+        user_agent=None
+    ):
+        self.dork = dork
+        self.URL = URL
+        self._pattern = pattern
+        self.class_tag = class_tag
+        self.proxy = proxy
+        self.user_agent = user_agent or useragent()
 
+    def __dir__(self):
+        return list(set(self.__list))
 
-      def __dir__(self):
-          return list(set(self.__list))
+    def _harvest(self, content):
+        for url in findall(self._pattern, content):
+            if 'www.google.com' in self.URL:
+                self.__list.append(url)
+            else:
+                self.__list.append(url[:-1])
 
-
-      def get_page(self):
-          self.__req = scrape(user_agent=self.user_agent)
-          s = self.__req.open(
-            self.URL,
-            proxies = self.proxy,
-            timeout = 10
-          )
-          self.__req.select_form(
-            'form[action="/search"]'
-          )
-          self.__req['q'] = self.dork
-          self.__req.submit_selected()
-          _content = str(self.__req.get_current_page())
-          for urls in findall(
-            self.__pattern,
-            _content
-          ):
-              if 'www.google.com' in self.URL: self.__list.append(urls)
-              else: self.__list.append(urls[:-1])
-          return self.__req.get_current_page().find_all(
-            'a',
-            class_=self.class_tag
-          )
-
-      def request(self):
-          self.__req = scrape(user_agent=self.user_agent)
-          for page in self.get_page():
-              try:
-                  load()
-                  self.__req.open(
-                    f'{self.URL}{page.get("href")}',
-                    proxies = self.proxy
-                  )
-                  content = str(self.__req.get_current_page())
-                  for urls in findall(
-                  self.__pattern,
-                  content
-                  ):
-                      if 'www.google.com' in self.URL: self.__list.append(urls)
-                      else: self.__list.append(urls[:-1])
-              except Exception as e:
-                  print(e)
+    def request(self):
+        proxy = _proxy_dict(self.proxy)
+        selector = _css_selector(self.class_tag)
+        with Camoufox(headless=True, proxy=proxy) as browser:
+            page = browser.new_page()
+            page.goto(self.URL, timeout=15000)
+            page.fill('input[name="q"]', self.dork)
+            page.press('input[name="q"]', 'Enter')
+            page.wait_for_load_state('networkidle', timeout=15000)
+            self._harvest(page.content())
+            for link in page.query_selector_all(selector):
+                try:
+                    load()
+                    href = link.get_attribute('href')
+                    if href:
+                        page.goto(f'{self.URL}{href}', timeout=15000)
+                        page.wait_for_load_state('networkidle', timeout=15000)
+                        self._harvest(page.content())
+                except Exception as e:
+                    print(e)

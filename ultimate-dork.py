@@ -5,11 +5,11 @@ if sys.version[0] in '2':
    exit()
 from lib.tmp import color as _
 try:
-    import mechanicalsoup
+    import camoufox
     import requests
 except Exception as e:
-    print('\n{}[-]{} mechanicalsoup package Not Installed\n'.format(_.R,_.W))
-    print('type pip3 install mechanicalsoup')
+    print('\n{}[-]{} camoufox package Not Installed\n'.format(_.R,_.W))
+    print('type pip3 install camoufox')
     exit()
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
