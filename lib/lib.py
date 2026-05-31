@@ -19,8 +19,6 @@ def _css_selector(class_tag):
 
 class Parser(object):
 
-    __list = []
-
     def __init__(
         self,
         dork,
@@ -28,7 +26,8 @@ class Parser(object):
         pattern,
         class_tag,
         proxy=None,
-        user_agent=None
+        user_agent=None,
+        output_cb=None,
     ):
         self.dork = dork
         self.URL = URL
@@ -36,16 +35,18 @@ class Parser(object):
         self.class_tag = class_tag
         self.proxy = proxy
         self.user_agent = user_agent or useragent()
+        self.output_cb = output_cb or print
+        self._list = []
 
     def __dir__(self):
-        return list(set(self.__list))
+        return list(set(self._list))
 
     def _harvest(self, content):
         for url in findall(self._pattern, content):
             if 'www.google.com' in self.URL:
-                self.__list.append(url)
+                self._list.append(url)
             else:
-                self.__list.append(url[:-1])
+                self._list.append(url[:-1])
 
     def request(self):
         proxy = _proxy_dict(self.proxy)
@@ -66,4 +67,4 @@ class Parser(object):
                         page.wait_for_load_state('networkidle', timeout=15000)
                         self._harvest(page.content())
                 except Exception as e:
-                    print(e)
+                    self.output_cb(str(e))
